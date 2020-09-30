@@ -26,9 +26,10 @@ def entropy(S, N):
 
 def callback(pkt):
     global S1
-    if pkt.haslayer(Ether):
-        emisor = pkt[Ether].src
-        receptor = pkt[Ether].dst
+    if pkt.haslayer(ARP):
+        #print(pkt.show())
+        emisor = pkt[ARP].psrc
+        receptor = pkt[ARP].pdst
         tipo = "REQUEST" if pkt[Ether].dst=="ff:ff:ff:ff:ff:ff" else "REPLY" # es analogo a asignarle a dire el valor BROADCAST o UNICAST, me parecio mas apropiado al contexto del punto 3 poner request o reply (?)
         s_i = (emisor, receptor, tipo) # Aca se define el simbolo de la fuente
         if s_i not in S1:
@@ -48,35 +49,49 @@ def actualizar_tabla(tabla, S1, hora_inicio):
     # el problema es que esas IPs van apareciendo de la nada. La cantidad de columnas del dataframe va aumentando con el tiempo :(
     # es lo unico que faltaria, poder agregar columnas correctamente a un dataframe a medida que aparecen nuevas IPs.
     # sino podemos harcodear una columna que se llame "router", llevar la cuenta de los reply que hizo y fue. Se supone que "router" va a hacer tantos replies como replies totales haya en toda la red...
-
+    
     N = sum(S1.values())
     entropia = entropy(S1, N)
-    simbolos = sorted(S1.items(), key=lambda x: x[0][0]) # simbolos esta ordenado segun IP emisor. Se supone que la IP del router va a quedar arriba de todo porque es la que hace más hace reply. Chequear.
+
+    simbolos = sorted(S1.items(), key=lambda x: -x[1]) # simbolos esta ordenado segun IP emisor. Se supone que la IP del router va a quedar arriba de todo porque es la que hace más hace reply. Chequear.
     horario = f"{hora_inicio.hour}:{hora_inicio.minute}"
+    tabla.loc[horario,'Entropia'] = entropia
     Reply = 0
-    
+    Requests = 0
     #emisores = {}
 
     for simbolo in simbolos:
         # todo lo comentado acá abajo es un intento fallido de agregar una columna nueva. También intenté con .assign y .combine pero fallé.
-
-        #emisorActual = simbolo[0][0]
-        #if emisorActual not in emisores.keys(): # si el emisor no estaba en emisores, lo inicializamos.
+        
+        emisorActual = simbolo[0][0]
+        
+        
+        #emisorActual not in emisores.keys(): # si el emisor no estaba en emisores, lo inicializamos.
         #    emisorActual = 0.0
         #    nuevaColumna = [0] * tabla.Entropia.size()
         #    nuevaColumna.append(simbolo[1]/N)
         #    en algun momento habria que hacer algo tipo tabla.[emisorActual] = nuevaColumna (?)
         #else
-        	
+            
         #emisores[emisorActual] += simbolo[1]/N
         if simbolo[0][2] == "REPLY":
-            Reply += simbolo[1]   
+			if not f"{emisorActual}-Reply" in tabla.columns:
+				tabla.loc[horario,f"{emisorActual}-Reply"] = simbolo[1]
+			else:
+				tabla.loc[horario,f"{emisorActual}-Reply"] = simbolo[1]
+            Reply += simbolo[1]  
+        else:
+			if not f"{emisorActual}-Request" in tabla.columns:
+				tabla.loc[horario,f"{emisorActual}-Request"] = simbolo[1]
+			else:
+				tabla.loc[horario,f"{emisorActual}-Request"] = simbolo[1]
+			Requests += simbolo[1]
 
-    Request = (N - Reply) / N if N != 0 else 0
-    Reply = Reply / N if N != 0 else 0
-    #emisoresProbabilidades = [emisores[key] for key in sorted(emisores.keys())]
-    fila = [entropia, Reply , Request, N] # + emisoresProbabilidades
-    tabla.loc[horario] = fila
+
+    
+    tabla.loc[horario,'Request'] = Requests
+    tabla.loc[horario,'Reply'] = Reply    
+    tabla.loc[horario,'Paquetes'] = N
     print(tabla)
     print()
 
@@ -85,10 +100,10 @@ def actualizar_tabla(tabla, S1, hora_inicio):
 if __name__ == "__main__": 
     #Esta pensado para que corra una iteracion x hora unas 24 veces
     tabla = pd.DataFrame(columns=["Entropia","Reply","Request","Paquetes"]) 
-    for i in range(0, 12): #ni a palos vamos a estar 24 horas corriendo esto (?) o si? hay tiempo?
+    for i in range(0, 1): #ni a palos vamos a estar 24 horas corriendo esto (?) o si? hay tiempo?
         hora_inicio = datetime.today()
         S1 = {}
-        sniff(prn=callback, timeout=60, filter="arp") #timeout esta en segundos y solo se sniffean los paquetes de protocolo ARP.
+        sniff(prn=callback, timeout=1800, filter="arp") #timeout esta en segundos y solo se sniffean los paquetes de protocolo ARP.
         #ojo que asi como esta, cada minuto se borra la fuente anterior y se crea una nueva. Digo por si hay que chequear algo
         mostrar_fuente(S1)
         actualizar_tabla(tabla, S1, hora_inicio)
