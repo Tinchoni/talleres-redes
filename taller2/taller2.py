@@ -22,16 +22,16 @@ def write_traceroute_to_csv(ip_destino,responses):
         for ttl,response in responses.items():
             if ttl > 1:
                 ip_mas_frecuente_anterior = ip_mas_frecuente
-            ip_mas_frecuente = get_ip_mas_frecuente(reponse)
+            ip_mas_frecuente = get_ip_mas_frecuente(response)
             if ttl > 1 and ip_mas_frecuente_anterior != 'No Response' :
                 rtt_promedio_anterior = rtt_promedio
-            rtt_promedio = mean(reponse[ip_mas_frecuente])
-            rtt_max = max(reponse[ip_mas_frecuente])
-            rtt_min = min(reponse[ip_mas_frecuente])
+            rtt_promedio = mean(response[ip_mas_frecuente])
+            rtt_max = max(response[ip_mas_frecuente])
+            rtt_min = min(response[ip_mas_frecuente])
             rtt_inter_salto = rtt_promedio - rtt_promedio_anterior
             fd.write(f"{ttl},{ip_mas_frecuente},{rtt_promedio},{rtt_max},{rtt_min},{rtt_inter_salto if rtt_inter_salto > 0 else 0}\n")
 
-for ttl in range(1,25):
+for ttl in range(1,30):
     ip_valida = False
     for _ in range(1,30):
         probe = IP(dst=sys.argv[1], ttl=ttl) / ICMP()
