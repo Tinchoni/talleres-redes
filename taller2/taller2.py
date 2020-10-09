@@ -57,7 +57,7 @@ def write_rtt_and_normalized_rtt_to_csv(rtts):
         fd.write("ttl,intersalto,normalizado\n")
         for ttl,rtt in rtts:
             intersalto_normalizado = abs(rtt - promedio) / desviacion_estandar
-            fd.write(f"{ttl},{rtt},{intersalto_normalizado},\n")
+            fd.write(f"{ttl},{rtt},{intersalto_normalizado}\n")
 
 def find_outliers():
     rtts = list(muestra_de_saltos.items())
