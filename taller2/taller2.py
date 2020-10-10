@@ -81,7 +81,7 @@ def find_outliers():
 
 
 
-for ttl in range(1,30):
+for ttl in range(1,50):
     ip_valida = False
     for _ in range(1,30):
         probe = IP(dst=sys.argv[1], ttl=ttl) / ICMP()
