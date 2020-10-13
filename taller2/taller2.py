@@ -19,7 +19,7 @@ def get_ip_mas_frecuente(response):
 
 
 
-def write_traceroute_to_csv(ip_destino,responses):
+def write_traceroute_to_csv(ip_destino, responses):
     with open(f'Traceroute_{ip_destino}.csv','w') as fd:
         fd.write("ttl,ip,promedio,max,min,intersalto\n")
         rtt_promedio = 0
@@ -48,17 +48,26 @@ def only_second_elements(pairs):
         res.append(elem[1])
     return res
 
+def write_rtt_and_normalized_rtt_to_csv(rtts):
+    promedio = mean(only_second_elements(rtts))
+    desviacion_estandar = stdev(only_second_elements(rtts))
+
+    with open(f'Traceroute_{sys.argv[1]}_outliers.csv','w') as fd:
+        fd.write("ttl,intersalto,normalizado\n")
+        for ttl,rtt in rtts:
+            intersalto_normalizado = abs(rtt - promedio) / desviacion_estandar
+            fd.write(f"{ttl},{rtt},{intersalto_normalizado}\n")
 
 def find_outliers():
     rtts = list(muestra_de_saltos.items())
-    rtts.sort(key = lambda par: par[1]) # ordenamos los pares (ttl, rtt) segun el rtt entre saltos
     hay_posibles_outliers = True
     outliers = []
     iteratorFiltered = filter(lambda pair: pair[1] != 0, rtts) # quitamos los saltos con rtt negativo o correspondientes a No Response's
-    rtts = list(iteratorFiltered)
+    rtts = list(iteratorFiltered)   
 
-    #print("\nflacoooo hasta aca, esta es tu muestra sin No responses ni intersaltos negativos ni ttl=1:")
-    #print(rtts)
+    write_rtt_and_normalized_rtt_to_csv(rtts)
+
+    rtts.sort(key = lambda par: par[1]) # ordenamos los pares (ttl, rtt) segun el rtt entre saltos
 
     while hay_posibles_outliers:
         n = len(rtts)
@@ -74,12 +83,12 @@ def find_outliers():
             if not rtts:
                 hay_posibles_outliers = False
         else:
-            hay_posibles_outliers = False # ya podemos dejar de buscar outliers porque si el de mayor rtt no lo era, entonces los de menor rtt tampoco lo seran.
+            hay_posibles_outliers = False # podemos dejar de buscar outliers porque si el de mayor rtt no lo era, entonces los de menor rtt tampoco.
     
-    print("\nbueno mastercard, estos son los saltos outlier con sus respectivos rtts:\n")
     print(outliers)
 
 
+# Codigo principal:
 
 for ttl in range(1,30):
     ip_valida = False
