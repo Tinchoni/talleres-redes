@@ -157,7 +157,7 @@ port,protocolo,estado,flags
 78,udp,abierto|filtrado,
 79,tcp,filtrado,
 79,udp,abierto|filtrado,
-80,tcp,filtrado,
+80,tcp,abierto,SA
 80,udp,abierto|filtrado,
 81,tcp,filtrado,
 81,udp,abierto|filtrado,
@@ -883,7 +883,7 @@ port,protocolo,estado,flags
 441,udp,abierto|filtrado,
 442,tcp,filtrado,
 442,udp,abierto|filtrado,
-443,tcp,filtrado,
+443,tcp,abierto,SA
 443,udp,abierto|filtrado,
 444,tcp,filtrado,
 444,udp,abierto|filtrado,
