@@ -12,7 +12,7 @@ def print_authority(answer):
 		print(f"{answer[DNS].ar[i].rrname}\t{types[answer[DNS].ar[i].type]}\t{answer[DNS].ar[i].rdata}")
 
 def print_name_servers(answer):
-	print("\nNAME SERVERS (llamdo authority section en dig)")
+	print("\nNAME SERVERS (llamado authority section en dig)")
 	for i in range(answer[DNS].nscount): # nscount = cantidad de nameservers. "the number of name server resource records in the authority records section".
 			print(f"{answer[DNS].ns[i].rrname}\t{types[answer[DNS].ns[i].type]}\t{answer[DNS].ns[i].rdata}")
 
@@ -28,6 +28,18 @@ def print_answers(answer):
 def print_delimiter(name_server):
 	print("\n*********************************************************************\n")
 	print(f"Siguiente iteración por: {name_server}", end="\n\n")
+
+def print_summary():
+	print("\n\n  ____________________________________________________________________")
+	print(f"\n| Niveles recorridos: {server_levels_visited}")
+	print(f"| Cantidad de nombres de servidores de mail encontrados: {answer[DNS].ancount}")
+	print(f"| Cantidad de nombres en el mismo dominio de la universidad: {mail_server_names_with_university_domain}")
+	print(f"| Direcciones ip de los servidores de mail:\n| {mail_server_name_ips} ")
+	print(f"| Todos contestaron: {everyone_answered}")
+	print("  ────────────────────────────────────────────────────────────────────")
+	print("\t       \\\n\t\t\\   ^__^\n\t\t \\  (oo)\\_______\n\t\t    (__)\\       )\\/\\\n\t\t\t||----w |\n\t\t\t||     ||")
+
+print("                  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒")
 
 def resolve_ip(name):
 	ip_layer = IP(dst="8.8.8.8")
@@ -49,6 +61,8 @@ server_levels_visited = 1
 got_mail_server_name = False
 mail_server_names_with_university_domain = 0
 mail_server_name_ips = {}
+everyone_answered = True
+index = 0
 
 while not got_mail_server_name:
 	if answer.haslayer(DNS) and answer[DNS].qd.qtype == 15: # 15 es el tipo MX segun RFC 1035.
@@ -62,27 +76,33 @@ while not got_mail_server_name:
 				mail_server_name_ips[(answer[DNS].an[i].exchange).decode("utf-8")] = resolve_ip(answer[DNS].an[i].exchange)
 				if domain_name in str(answer[DNS].an[i].exchange):
 					mail_server_names_with_university_domain += 1
-			print(f"\nNiveles recorridos: {server_levels_visited}")
-			print(f"Cantidad de nombres de servidores de mail encontrados: {answer[DNS].ancount}")
-			print(f"Cantidad de nombres en el mismo dominio de la universidad: {mail_server_names_with_university_domain}")
-			print("Direcciones ip de los servidores de mail:",mail_server_name_ips)
+			print_summary()				
 
 		elif answer[DNS].nscount > 0: # caso i)
-			print_delimiter((answer[DNS].ns[0].rdata).decode("utf-8")) # para que no se imprima como bytes-like object, que se yo. Cositas de Python.
-			name_server_ip = resolve_ip(answer[DNS].ns[0].rdata)
-			ip = IP(dst=name_server_ip)
-			answer = sr1( ip / udp / dns , verbose=0, timeout=10)
-			server_levels_visited += 1
+			
+			for i in range(answer[DNS].nscount):
+				try:
+					ip2 = IP(dst=resolve_ip(answer[DNS].ns[i].rdata))
+					answer2 = sr1( ip2 / udp / dns, verbose=0, timeout=10)
+					if answer2 is None:
+						everyone_answered = everyone_answered and False
+				except:
+					everyone_answered = everyone_answered and False
+
+			print_delimiter((answer[DNS].ns[index].rdata).decode("utf-8")) # para que no se imprima como bytes-like object, que se yo. Cositas de Python.
+			
+			try:
+				name_server_ip = resolve_ip(answer[DNS].ns[index].rdata)
+				ip = IP(dst=name_server_ip)
+				answer = sr1( ip / udp / dns , verbose=0, timeout=10)
+				server_levels_visited += 1
+				index = 0
+			except:
+				index += 1
+				continue	
 
 		elif answer[DNS].an[0].type == 6: # caso iii)
 			print("Qué se yo rey, el registro no está en la database de esta zona. F.")
-
-print("\n\n  ______________________________________________________________")
-print("/ Congrats, no te explotó la compu con toda la falopa que codeé. \\\n\\ Me fui a dormir rey.                                           /")
-print("  ──────────────────────────────────────────────────────────────")
-print("\t       \\\n\t\t\\   ^__^\n\t\t \\  (oo)\\_______\n\t\t    (__)\\       )\\/\\\n\t\t\t||----w |\n\t\t\t||     ||")
-
-print("                  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒")
 
 # https://tools.ietf.org/html/rfc1034
 # https://tools.ietf.org/html/rfc1035
