@@ -84,8 +84,7 @@ while not got_mail_server_name:
 				try:
 					ip2 = IP(dst=resolve_ip(answer[DNS].ns[i].rdata))
 					answer2 = sr1( ip2 / udp / dns, verbose=0, timeout=10)
-					if answer2 is None:
-						everyone_answered = everyone_answered and False
+					everyone_answered = everyone_answered and (answer2 is not None)
 				except:
 					everyone_answered = everyone_answered and False
 
