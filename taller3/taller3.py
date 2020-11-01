@@ -36,7 +36,9 @@ for i in ports:
 			estado = 'cerrado'
 			print(" cerrado", tcp_layer.flags)
 		flags = tcp_layer.flags
-
+	elif resp.haslayer(ICMP):
+			estado = 'cerrado'
+			print(' cerrado')
 	write_to_csv(f'{i},tcp,{estado},{flags}\n')
 
 	#UDP:
