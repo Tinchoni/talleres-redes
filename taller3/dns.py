@@ -50,6 +50,7 @@ def process_mail_server_names(answer):
 	for i in range(answer[DNS].ancount):
 		mail_server_name_ips[(answer[DNS].an[i].exchange).decode("utf-8")] = find_ip_in_name_server(answer, answer[DNS].an[i].exchange)
 		if domain_name in str(answer[DNS].an[i].exchange):
+			global mail_server_names_with_university_domain
 			mail_server_names_with_university_domain += 1
 
 def check_if_each_name_server_answers(answer):
@@ -79,6 +80,25 @@ def find_ip_in_name_server(answer, name):
 		if answer[DNS].ar[i].rrname == name and answer[DNS].ar[i].type == 1:
 			res = answer[DNS].ar[i].rdata
 	return res
+
+def update_answer_for_next_iteration():
+	global answer
+	global index
+	global server_levels_visited
+	next_name_server_ip = find_ip_in_name_server(answer, answer[DNS].ns[index].rdata)
+	if next_name_server_ip is None: # la ip no se encontró en el name server actual.
+		print("La ip de",(answer[DNS].ns[index].rdata).decode("utf-8"), "no se encuentra en el name server.")
+		index += 1
+	else:
+		ip = IP(dst=next_name_server_ip)
+		possible_answer = sr1( ip / udp / dns, verbose=0, timeout=5)
+		if possible_answer is None: # la ip se encontró en el name server actual pero el nuevo name server no responde.
+			print("El name server",(answer[DNS].ns[index].rdata).decode("utf-8"), "no responde.")
+			index += 1
+		else: # la ip se encontró en el name server actual y el nuevo name server responde normalmente :)
+			answer = possible_answer
+			server_levels_visited += 1
+			index = 0
 
 # CODIGO PRINCIPAL:
 
@@ -110,33 +130,8 @@ while not got_mail_server_name:
 		elif answer[DNS].nscount > 0: # caso i)
 			everyone_answered = everyone_answered and check_if_each_name_server_answers(answer)
 			print_delimiter((answer[DNS].ns[index].rdata).decode("utf-8"))
-
-			# Define answer para la proxima iteracion:
-			next_name_server_ip = find_ip_in_name_server(answer, answer[DNS].ns[index].rdata)
-			if next_name_server_ip is None: # la ip no se encontró en el viejo name server.
-				print("La ip de",(answer[DNS].ns[index].rdata).decode("utf-8"), "no se encuentra en el name server.")
-				index += 1
-			else:
-				ip = IP(dst=next_name_server_ip)
-				possible_answer = sr1( ip / udp / dns, verbose=0, timeout=5)
-				if possible_answer is None: # la ip se encontró en el viejo name server pero el nuevo name server no responde.
-					print("El name server",(answer[DNS].ns[index].rdata).decode("utf-8"), "no responde.")
-					index += 1
-				else: # la ip se encontró en el viejo name server y el nuevo name server responde normalmente.
-					answer = possible_answer
-					server_levels_visited += 1
-					index = 0
-
-			# Version chanta usando el server publico de Google pa resolver ip:
-			# try:
-			# 	next_name_server_ip = resolve_ip(answer[DNS].ns[index].rdata)
-			# 	ip = IP(dst=next_name_server_ip)
-			# 	answer = sr1( ip / udp / dns, verbose=0, timeout=10)
-			# 	server_levels_visited += 1
-			# 	index = 0
-			# except:
-			# 	index += 1
-			# 	continue
+			update_answer_for_next_iteration()
+			
 		elif answer[DNS].an[0].type == 6: # caso iii)
 			print("El registro buscado no está en la base de datos de esta zona. F.")
 
