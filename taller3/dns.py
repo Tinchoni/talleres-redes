@@ -46,7 +46,7 @@ def print_summary():
 
 
 def process_mail_server_names(answer):
-	# Agrega cada respuesta al diccionario y contabiliza si tiene el mismo dominio que su universidad:
+	# Agrega cada respuesta al diccionario y contabiliza si tiene el mismo dominio que su universidad.
 	for i in range(answer[DNS].ancount):
 		mail_server_name_ips[(answer[DNS].an[i].exchange).decode("utf-8")] = find_ip_in_name_server(answer, answer[DNS].an[i].exchange)
 		if domain_name in str(answer[DNS].an[i].exchange):
@@ -67,21 +67,22 @@ def check_if_each_name_server_answers(answer):
 	return res
 
 def resolve_ip(name):
-	# Intenta resolver la ip de name utilizando el server público de Google:
+	# Intenta resolver la ip de name utilizando el server público de Google.
 	ip_layer = IP(dst="8.8.8.8")
 	udp_layer = UDP(sport=RandShort(), dport=53)
 	dns_layer = DNS(rd=1,qd=DNSQR(qname=name))
 	return sr1(ip_layer/udp_layer/dns_layer, verbose=0)[DNS].an[0].rdata
 
 def find_ip_in_name_server(answer, name):
-	# Busca la ip de name en los registros de tipo A del name server actual:
+	# Busca la ip de name en los registros de tipo A del name server actual.
 	res = None
 	for i in range(answer[DNS].arcount):
-		if answer[DNS].ar[i].rrname == name and answer[DNS].ar[i].type == 1:
+		if answer[DNS].ar[i].rrname.lower() == name.lower() and answer[DNS].ar[i].type == 1:
 			res = answer[DNS].ar[i].rdata
 	return res
 
 def update_answer_for_next_iteration():
+	# Define answer para la proxima iteracion.
 	global answer
 	global index
 	global server_levels_visited
@@ -99,6 +100,8 @@ def update_answer_for_next_iteration():
 			answer = possible_answer
 			server_levels_visited += 1
 			index = 0
+
+
 
 # CODIGO PRINCIPAL:
 
@@ -131,7 +134,7 @@ while not got_mail_server_name:
 			everyone_answered = everyone_answered and check_if_each_name_server_answers(answer)
 			print_delimiter((answer[DNS].ns[index].rdata).decode("utf-8"))
 			update_answer_for_next_iteration()
-			
+
 		elif answer[DNS].an[0].type == 6: # caso iii)
 			print("El registro buscado no está en la base de datos de esta zona. F.")
 
